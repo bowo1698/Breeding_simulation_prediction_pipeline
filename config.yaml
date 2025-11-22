@@ -1,0 +1,47 @@
+#===============================================================================
+# AlphaSimR Simulation Parameters
+# Configuration file for genetic population
+#===============================================================================
+
+random_seed: 12345
+
+# Population Parameters
+population:
+  n_individuals: 2000              # Final population size (must match breeding population_size)
+  n_chromosomes: 25                # Number of chromosomes in genome
+  n_snps_per_chrom: 1000           # SNPs per chromosome (total SNP = n_snps_per_chrom x n_chromosomes)
+  effective_pop_size: 300          # Current effective population size (Ne) - influences genetic diversity
+  historical_Ne: 300               # Historical effective population size
+  historical_generations: 300      # Generations to reach mutation-drift equilibrium
+  mutation_rate: 2.5e-8            # Probability of mutation per base per generation
+  chr_length_bp: 100000000         # Physical length of each chromosome in base pairs
+  genome_length: 1.0               # Genetic map length in Morgans (1.0 = 100 cM)
+
+# Breeding Program Parameters
+breeding:
+  burn_in_generations: 10          # Burn-in generations for LD equilibrium (discarded)
+  reference_generations: [14, 15]  # Multi-generational reference population (training)
+  validation_generation: 16        # Single generation for hyperparameter tuning
+  test_generations: [16, 17, 18]   # Test populations for validasi accuracy
+  
+  selection_intensity: 0.8          # Proportion of top individuals selected for breeding
+  mating_design: "random"           # Mating scheme: "random" or "assortative"
+  population_size: 1000             # Breeding population size per generation
+
+# Genetic Architecture Parameters
+genetic_architecture:
+  n_qtl: 500                         # Number of Quantitative Trait Loci affecting the trait
+  heritability: 0.2                  # Proportion of phenotypic variance due to genetics (h2)
+  qtl_effect_distribution: "normal"  # Distribution of QTL effects: "normal" or "mixture"
+  qtl_proportions: [0.7, 0.4, 0.3]   # For mixture: proportions of small/medium/large effect QTLs
+  qtl_effect_sizes: [5.0, 25.0, 100.0]  # Effect magnitudes for small/medium/large QTL classes
+  
+# Quality Control Parameters
+quality_control:
+  missing_data_rate: 0.01           # Maximum proportion of missing genotype data
+
+# Output
+output:
+  output_dir: "sim_output/run_scenario1"     # Directory name for simulation results
+
+##
