@@ -161,11 +161,15 @@ run_breeding_program <- function(founderPop, config) {
   SP$setVarE(h2 = h2)
 
   # SNP access strategy: Use all segregating sites directly
+  # Use ALL segregating sites as SNP markers
+  cat(sprintf("\nDefining SNP chip markers:\n"))
+  SP$addSnpChip(nSnpPerChr = SP$segSites)  # Use all segregating sites
   total_seg_sites <- sum(SP$segSites)
-  cat(sprintf("✓ All segregating sites available: %d total SNPs\n", total_seg_sites))
+  cat(sprintf("✓ SNP chip defined: %d total SNPs\n", total_seg_sites))
   cat(sprintf("  Average per chromosome: %.1f SNPs\n", mean(SP$segSites)))
   cat(sprintf("  Range: %d - %d SNPs per chromosome\n", 
               min(SP$segSites), max(SP$segSites)))
+  cat(sprintf("  This ensures QTLs are within genotyped markers\n\n"))
   
   # Create initial population
   pop <- newPop(founderPop, simParam = SP)
@@ -482,7 +486,8 @@ simulate_genotype_data <- function(pop, SP, config, haplo_raw = NULL) {
   
   # Pull SNP genotypes
   if (is.null(haplo_raw)) {
-    haplo_raw <- pullSegSiteHaplo(pop, simParam = SP)
+    haplo_raw <- pullSnpHaplo(pop, simParam = SP) # pullSegSiteHaplo(pop, simParam = SP) 
+    cat("  Using SNP chip markers (includes QTLs)\n")
   } else {
     cat("  Using pre-extracted haplotype data for consistency\n")
   }
@@ -733,7 +738,7 @@ main <- function() {
   start_time <- Sys.time()
   
   # Load configuration
-  config <- load_config("simulation_params.yaml")
+  config <- load_config("config.yaml")
 
   # validate parameters
   if (config$population$n_individuals != config$breeding$population_size) {
@@ -896,7 +901,7 @@ main <- function() {
                 gen, nrow(geno_test)))
   }
   
-  # Save QTL map dan pedigree
+  # Save QTL map and pedigree
   write.csv(qtl_map, file.path(output_dir, "true_qtl_effects.csv"), 
             row.names = FALSE)
   write.csv(pedigree_df, file.path(output_dir, "pedigree.csv"), 
