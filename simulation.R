@@ -163,7 +163,8 @@ run_breeding_program <- function(founderPop, config) {
   # SNP access strategy: Use all segregating sites directly
   # Use ALL segregating sites as SNP markers
   cat(sprintf("\nDefining SNP chip markers:\n"))
-  SP$addSnpChip(nSnpPerChr = SP$segSites)  # Use all segregating sites
+  n_snps_chip <- floor(SP$segSites * 0.95)
+  SP$addSnpChip(nSnpPerChr = n_snps_chip, minSnpFreq = 0) # Use all segregating sites
   total_seg_sites <- sum(SP$segSites)
   cat(sprintf("✓ SNP chip defined: %d total SNPs\n", total_seg_sites))
   cat(sprintf("  Average per chromosome: %.1f SNPs\n", mean(SP$segSites)))
