@@ -20,7 +20,7 @@ suppressPackageStartupMessages({
 })
 
 # load config and extract
-config <- read_yaml("simulation_params.yaml")
+config <- read_yaml("config.yaml")
 # Extract parameters
 sim_output_dir <- config$output$output_dir
 test_gens <- config$breeding$test_generations
