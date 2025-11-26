@@ -161,16 +161,11 @@ run_breeding_program <- function(founderPop, config) {
   SP$setVarE(h2 = h2)
 
   # SNP access strategy: Use all segregating sites directly
-  # Use ALL segregating sites as SNP markers
-  cat(sprintf("\nDefining SNP chip markers:\n"))
-  n_snps_chip <- floor(SP$segSites * 0.95)
-  SP$addSnpChip(nSnpPerChr = n_snps_chip, minSnpFreq = 0) # Use all segregating sites
   total_seg_sites <- sum(SP$segSites)
-  cat(sprintf("✓ SNP chip defined: %d total SNPs\n", total_seg_sites))
+  cat(sprintf("✓ All segregating sites available: %d total SNPs\n", total_seg_sites))
   cat(sprintf("  Average per chromosome: %.1f SNPs\n", mean(SP$segSites)))
   cat(sprintf("  Range: %d - %d SNPs per chromosome\n", 
               min(SP$segSites), max(SP$segSites)))
-  cat(sprintf("  This ensures QTLs are within genotyped markers\n\n"))
   
   # Create initial population
   pop <- newPop(founderPop, simParam = SP)
@@ -487,8 +482,7 @@ simulate_genotype_data <- function(pop, SP, config, haplo_raw = NULL) {
   
   # Pull SNP genotypes
   if (is.null(haplo_raw)) {
-    haplo_raw <- pullSnpHaplo(pop, simParam = SP) # pullSegSiteHaplo(pop, simParam = SP) 
-    cat("  Using SNP chip markers (includes QTLs)\n")
+    haplo_raw <- pullSegSiteHaplo(pop, simParam = SP)
   } else {
     cat("  Using pre-extracted haplotype data for consistency\n")
   }
