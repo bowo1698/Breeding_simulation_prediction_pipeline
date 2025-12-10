@@ -5,7 +5,7 @@
 # 3.  Quality control: MAF filtering, call rate filtering
 
 #install.packages(c("tidyverse", "randomForest", "xgboost", 
-#                   "e1071", "ipred", "rrBLUP", "gridExtra", "hibayes"))
+#                   "e1071", "rrBLUP", "gridExtra", "hibayes"))
 
 # Load libraries
 suppressPackageStartupMessages({
@@ -43,10 +43,10 @@ genotype_test_gen18 <- read_csv(file.path(sim_output_dir, paste0("genotype_test_
 phenotype_test_gen18 <- read_csv(file.path(sim_output_dir, paste0("phenotype_test_gen", test_gens[3], ".csv")), show_col_types = FALSE)
 
 # Separate ID columns
-ref_ids <- genotype_ref$individual
-test_ids <- genotype_test$individual
-test_ids_gen17 <- genotype_test_gen17$individual
-test_ids_gen18 <- genotype_test_gen18$individual
+ref_ids <- genotype_ref[[1]]
+test_ids <- genotype_test[[1]]
+test_ids_gen17 <- genotype_test_gen17[[1]]
+test_ids_gen18 <- genotype_test_gen18[[1]]
 
 # Extract genotype matrices
 geno_ref <- data.matrix(genotype_ref[, -1])
