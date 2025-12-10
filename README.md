@@ -46,6 +46,7 @@ Clone this repository to download the pipeline via git clone.
 
 ```bash
 git clone https://github.com/bowo1698/Breeding_simulation_prediction_pipeline.git
+cd Breeding_simulation_prediction_pipeline
 ```
 
 ## Configuration
