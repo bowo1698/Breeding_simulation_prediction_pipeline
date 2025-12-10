@@ -865,7 +865,7 @@ ggsave(
 cat("Saved: performance_comparison_barplots.png\n")
 
 # ============================================
-# 6.5. Accuracy Decline Visualization
+# 6.5. Accuracy Decline Visualisation
 # ============================================
 
 p_decline <- ggplot(comparison, aes(x = reorder(Model, -Percent_Decline), 
@@ -1133,10 +1133,8 @@ report_output <- capture.output({
   cat(strrep("=", 60), "\n")
 })
 
-# Write ke file
+# Write
 writeLines(report_output, file.path(output_dir, "summary_report.txt"))
-
-# Progress message (muncul di HPC log)
 cat("Saved: summary_report.txt")
 
 # ============================================
