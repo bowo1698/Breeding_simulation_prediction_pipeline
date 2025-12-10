@@ -42,6 +42,11 @@ huggingface-cli download bowo1745/Genomic_prediction_simulation_data \
   --local-dir output/data_gen \
   --include "run_scenario*/*"
 ```
+Clone this repository to download the pipeline via git clone.
+
+```bash
+git clone https://github.com/bowo1698/Breeding_simulation_prediction_pipeline.git
+```
 
 ## Configuration
 
