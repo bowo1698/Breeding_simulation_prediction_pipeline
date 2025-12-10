@@ -26,6 +26,23 @@ install.packages(c("randomForest", "xgboost", "e1071"))
 install.packages("gridExtra")
 ```
 
+## Data and pipeline download
+
+All genotype and phenotype data can be downloaded via [huggingface.co](https://huggingface.co/datasets/bowo1745/Genomic_prediction_simulation_data/tree/main) using `huggingface_hub` using the following command, but ensure you have installed conda or python3
+
+```bash
+conda install huggingface_hub # via conda or
+
+#pip install huggingface_hub # via pip
+
+mkdir -p output/data_gen
+
+huggingface-cli download bowo1745/Genomic_prediction_simulation_data \
+  --repo-type dataset \
+  --local-dir output/data_gen \
+  --include "run_scenario*/*"
+```
+
 ## Configuration
 
 Edit `config.yaml` to customize simulation parameters:
