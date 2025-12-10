@@ -68,30 +68,24 @@ initialize_founder_population <- function(config) {
   seed <- as.integer(config$random_seed)
   n_ind <- as.integer(config$population$n_individuals)
   n_chr <- as.integer(config$population$n_chromosomes)
-  n_snps <- as.integer(config$population$n_snps_per_chrom)
   chr_length_bp <- as.numeric(config$population$chr_length_bp)
   gen_len <- as.numeric(config$population$genome_length)
   ne <- as.numeric(config$population$effective_pop_size)
   hist_gen <- as.numeric(config$population$historical_generations)
   hist_ne <- as.numeric(config$population$historical_Ne)
   mutRate <- as.numeric(config$population$mutation_rate)
-
-  # calculate SNP density
-  snp_density <- (n_snps * n_chr) / ((chr_length_bp * n_chr) / 1000000)  # Total SNPs per total Mb
   
   cat(sprintf("Creating founder population with:\n"))
   cat(sprintf("  - %d chromosomes\n", n_chr))
-  cat(sprintf("  - %d SNPs per chromosome (total: %d SNPs)\n", n_snps, n_chr * n_snps))
   cat(sprintf("  - Effective population size (Ne): %d\n", ne))
   cat(sprintf("  - Historical generations: %d\n", hist_gen))
-  cat(sprintf("SNP density: %.2f SNPs per Mb\n", snp_density))
   
   set.seed(seed)
   # Create founder population using coalescent simulation
   founderPop <- runMacs2(
     nInd = n_ind,
     nChr = n_chr,
-    segSites = n_snps,
+    segSites = NULL,
     bp = chr_length_bp,
     genLen = gen_len,
     Ne = ne,
