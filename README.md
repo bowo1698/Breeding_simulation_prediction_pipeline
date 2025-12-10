@@ -28,19 +28,26 @@ install.packages("gridExtra")
 
 ## Data and pipeline download
 
-All genotype and phenotype data can be downloaded via [huggingface.co](https://huggingface.co/datasets/bowo1745/Genomic_prediction_simulation_data/tree/main) using `huggingface_hub` using the following command, but ensure you have installed conda or python3
+All genotype and phenotype data can be downloaded via [huggingface.co](https://huggingface.co/datasets/bowo1745/Genomic_prediction_simulation_data/tree/main) using `huggingface_hub` using the following command, but ensure you have installed python3
 
 ```bash
-conda install huggingface_hub # via conda or
+pip install --user --upgrade huggingface_hub
 
-#pip install huggingface_hub # via pip
+export PATH=$HOME/.local/bin:$PATH
 
-mkdir -p output/data_gen
+huggingface-cli --version
 
-huggingface-cli download bowo1745/Genomic_prediction_simulation_data \
-  --repo-type dataset \
-  --local-dir output/data_gen \
-  --include "run_scenario*/*"
+mkdir -p output/data_gen_2
+
+python << 'EOF'
+from huggingface_hub import snapshot_download
+
+snapshot_download(
+    repo_id="bowo1745/Genomic_prediction_simulation_data",
+    repo_type="dataset",
+    allow_patterns="run_scenario*/*",
+    local_dir="output/data_gen"
+)
 ```
 Clone this repository to download the pipeline via git clone.
 
