@@ -26,7 +26,9 @@ install.packages(c("randomForest", "xgboost", "e1071"))
 install.packages("gridExtra")
 ```
 
-## Data and pipeline download
+## Data and pipeline download 
+
+This is an option if you want to generate similar results in genomic prediction, otherwise you can run your own simulation and skip this data download.
 
 All genotype and phenotype data can be downloaded via [huggingface.co](https://huggingface.co/datasets/bowo1745/Genomic_prediction_simulation_data/tree/main) using `huggingface_hub` using the following command, but ensure you have installed python3
 
@@ -56,7 +58,7 @@ git clone https://github.com/bowo1698/Breeding_simulation_prediction_pipeline.gi
 cd Breeding_simulation_prediction_pipeline
 ```
 
-## Configuration
+## Configurations for simulation
 
 Edit `config.yaml` to customize simulation parameters:
 
