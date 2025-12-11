@@ -1,7 +1,7 @@
 ## Preprocessing data
 
-# 1.  Handle missing values ​​in genotype test population (imputation or remove)
-# 2.  Genotype matrix standardization (center & scale)
+# 1.  Handle missing values ​​in the genotype test population (imputation or removal)
+# 2.  Genotype matrix standardisation (centre & scale)
 # 3.  Quality control: MAF filtering, call rate filtering
 
 #install.packages(c("tidyverse", "randomForest", "xgboost", 
@@ -19,28 +19,23 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-# load config and extract
-config <- read_yaml("config.yaml")
-# Extract parameters
-sim_output_dir <- config$output$output_dir
-test_gens <- config$breeding$test_generations
+n_threads <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4")) # automatically detect system cores
 
-# Create output directory 
-run_name <- basename(sim_output_dir)
-output_dir <- file.path("prediction_output", run_name)
+setwd("/scratch/user/aguswibowo/genomic_prediction/")
+output_dir <- "genomic_prediction/prediction_model/output/snp_scenario1"
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 message("Output directory created:", output_dir, "\n\n")
 
 # Load data
-genotype_ref <- read_csv(file.path(sim_output_dir, "genotype_reference.csv"), show_col_types = FALSE)
-phenotype_ref <- read_csv(file.path(sim_output_dir, "phenotype_reference.csv"), show_col_types = FALSE)
-genotype_test <- read_csv(file.path(sim_output_dir, paste0("genotype_test_gen", test_gens[1], ".csv")), show_col_types = FALSE)
-phenotype_test <- read_csv(file.path(sim_output_dir, paste0("phenotype_test_gen", test_gens[1], ".csv")), show_col_types = FALSE)
-genotype_test_gen17 <- read_csv(file.path(sim_output_dir, paste0("genotype_test_gen", test_gens[2], ".csv")), show_col_types = FALSE)
-phenotype_test_gen17 <- read_csv(file.path(sim_output_dir, paste0("phenotype_test_gen", test_gens[2], ".csv")), show_col_types = FALSE)
-genotype_test_gen18 <- read_csv(file.path(sim_output_dir, paste0("genotype_test_gen", test_gens[3], ".csv")), show_col_types = FALSE)
-phenotype_test_gen18 <- read_csv(file.path(sim_output_dir, paste0("phenotype_test_gen", test_gens[3], ".csv")), show_col_types = FALSE)
+genotype_ref <- read_csv("simulation/output/data_gen/run_scenario1/genotype_reference.csv", show_col_types = FALSE)
+phenotype_ref <- read_csv("simulation/output/data_gen/run_scenario1/phenotype_reference.csv", show_col_types = FALSE)
+genotype_test <- read_csv("simulation/output/data_gen/run_scenario1/genotype_test_gen16.csv", show_col_types = FALSE)
+phenotype_test <- read_csv("simulation/output/data_gen/run_scenario1/phenotype_test_gen16.csv", show_col_types = FALSE)
+genotype_test_gen17 <- read_csv("simulation/output/data_gen/run_scenario1/genotype_test_gen17.csv", show_col_types = FALSE)
+phenotype_test_gen17 <- read_csv("simulation/output/data_gen/run_scenario1/phenotype_test_gen17.csv", show_col_types = FALSE)
+genotype_test_gen18 <- read_csv("simulation/output/data_gen/run_scenario1/genotype_test_gen18.csv", show_col_types = FALSE)
+phenotype_test_gen18 <- read_csv("simulation/output/data_gen/run_scenario1/phenotype_test_gen18.csv", show_col_types = FALSE)
 
 # Separate ID columns
 ref_ids <- genotype_ref[[1]]
@@ -223,7 +218,7 @@ fit_bayesA <- ibrm(
   niter = 30000,
   nburn = 10000,
   thin = 5,
-  threads = 4,
+  threads = n_threads,
   verbose = FALSE
 )
 })
@@ -245,7 +240,7 @@ fit_bayesR <- ibrm(
   niter = 30000,
   nburn = 10000,
   thin = 5,
-  threads = 4,
+  threads = n_threads,
   verbose = FALSE
 )
 })
@@ -270,7 +265,6 @@ cat("Clean matrix:", ncol(geno_ref_std_clean), "SNPs\n\n")
 # ============================================
 # 3.B.1. Random Forest with CV tuning
 # ============================================
-if(FALSE){ # If you want to do tuning via CV, just remove the if(FALSE) condition
 rf_grid <- expand.grid(
   ntree = c(300, 500, 700),
   mtry = c(50, 100, 200),
@@ -292,6 +286,7 @@ for(i in seq_len(nrow(rf_grid))) {
       ytest = y_ref[val_idx],
       ntree = rf_grid$ntree[i],
       mtry = rf_grid$mtry[i],
+      num.threads = n_threads,
       nodesize = rf_grid$nodesize[i]
     )
     
@@ -308,16 +303,16 @@ cat("RF best params:\n")
 cat("  ntree =", rf_grid$ntree[best_rf], "\n")
 cat("  mtry =", rf_grid$mtry[best_rf], "\n")
 cat("  nodesize =", rf_grid$nodesize[best_rf], "\n")
-}
 
 rf_train_time <- system.time({
 set.seed(123)
 rf_model <- randomForest(
   x = geno_ref_std_clean,
   y = y_ref,
-  ntree = 500, #rf_grid$ntree[best_rf], # un-comment this for tuning via CV
-  mtry = 200, #rf_grid$mtry[best_rf], # # un-comment this for tuning via CV
-  nodesize = 10, #rf_grid$nodesize[best_rf], # un-comment this for tuning via CV
+  ntree = rf_grid$ntree[best_rf], # deafult 500
+  mtry = rf_grid$mtry[best_rf], # deafult 200
+  nodesize = rf_grid$nodesize[best_rf], # deafult 10
+  num.threads = n_threads,
   importance = TRUE
 )
 })
@@ -327,7 +322,6 @@ cat("RF training complete with time of:", round(rf_train_time[3], 2), "sec\n\n")
 # ============================================
 # 3.B.2. XGBoost with CV tuning
 # ============================================
-if(FALSE){
 xgb_grid <- expand.grid(
   eta = c(0.01, 0.1),
   max_depth = c(4, 6),
@@ -352,6 +346,7 @@ for(i in seq_len(nrow(xgb_grid))) {
     xgb_temp <- xgb.train(
       params = list(
         objective = "reg:squarederror",
+        nthread = n_threads,
         eta = xgb_grid$eta[i],
         max_depth = xgb_grid$max_depth[i],
         subsample = xgb_grid$subsample[i],
@@ -379,18 +374,18 @@ cat("  max_depth =", xgb_grid$max_depth[best_xgb], "\n")
 cat("  subsample =", xgb_grid$subsample[best_xgb], "\n")
 cat("  colsample_bytree =", xgb_grid$colsample_bytree[best_xgb], "\n")
 cat("  lambda =", xgb_grid$lambda[best_xgb], "\n")
-}
 
 xgb_train_time <- system.time({
 xgb_train <- xgb.DMatrix(data = geno_ref_std_clean, label = y_ref)
 xgb_model <- xgb.train(
   params = list(
     objective = "reg:squarederror",
-    eta = 0.1, #xgb_grid$eta[best_xgb], # un-comment this for tuning via CV
-    max_depth = 4, #xgb_grid$max_depth[best_xgb], # un-comment this for tuning via CV
-    subsample = 1, #xgb_grid$subsample[best_xgb], # un-comment this for tuning via CV
-    colsample_bytree = 0.6, #xgb_grid$colsample_bytree[best_xgb], # un-comment this for tuning via CV
-    lambda = 1 #xgb_grid$lambda[best_xgb] # un-comment this for tuning via CV
+    nthread = n_threads,
+    eta = xgb_grid$eta[best_xgb], # default 0.1
+    max_depth = xgb_grid$max_depth[best_xgb], # deafult 4
+    subsample = xgb_grid$subsample[best_xgb], # deafult 1
+    colsample_bytree = xgb_grid$colsample_bytree[best_xgb], # deafult 0.6
+    lambda = xgb_grid$lambda[best_xgb] # deafult 1
   ),
   data = xgb_train,
   nrounds = 200,
@@ -404,7 +399,6 @@ cat("XGB training time:", round(xgb_train_time[3], 2), "sec\n\n")
 # ============================================
 # 3.B.3. SVR with CV tuning
 # ============================================
-if(FALSE){
 svr_grid <- expand.grid(
   cost = c(0.1, 1, 10), #0.001 - 100
   epsilon = c(0.01, 0.1)
@@ -438,7 +432,6 @@ best_svr <- which.min(svr_cv_mean)
 cat("SVR tuning time:", round(svr_tuning_time[3], 2), "sec\n")
 cat("SVR best params: cost =", svr_grid$cost[best_svr],
     "epsilon =", svr_grid$epsilon[best_svr], "\n")
-}  
 #gamma
 
 svr_train_time <- system.time({
@@ -446,8 +439,8 @@ svr_model <- svm(
   x = geno_ref_std_clean,
   y = y_ref,
   kernel = "radial", #linear, polynomial, sigmoid
-  cost = 1, # svr_grid$cost[best_svr], # un-comment this for tuning via CV
-  epsilon = 0.1 # svr_grid$epsilon[best_svr] # un-comment this for tuning via CV
+  cost = svr_grid$cost[best_svr], # default 1
+  epsilon = svr_grid$epsilon[best_svr] # default 0.1
 )
 })
 
@@ -695,95 +688,6 @@ cat("Saved: models_ranked_by_accuracy.csv\n\n")
 # ============================================
 
 # ============================================
-# 6.1. Extract CV Performance for Boxplot
-# ============================================
-
-if(FALSE){
-
-# Convert CV results to correlation per fold
-cv_performance <- data.frame(
-  Model = character(),
-  Fold = integer(),
-  Correlation = numeric()
-)
-
-# Random Forest CV
-for(fold in 1:5) {
-  val_idx <- cv_folds[[fold]]$val_idx
-  train_idx <- cv_folds[[fold]]$train_idx
-  
-  rf_temp <- randomForest(
-    x = geno_ref_std_clean[train_idx, ],
-    y = y_ref[train_idx],
-    ntree = 500, #rf_grid$ntree[best_rf],
-    mtry = 200, #rf_grid$mtry[best_rf],
-    nodesize = 10 #rf_grid$nodesize[best_rf]
-  )
-  pred <- predict(rf_temp, geno_ref_std_clean[val_idx, ])
-  cv_performance <- rbind(cv_performance, 
-                          data.frame(Model = "Random_Forest", 
-                                   Fold = fold, 
-                                   Correlation = cor(pred, y_ref[val_idx])))
-}
-
-# XGBoost CV
-for(fold in 1:5) {
-  val_idx <- cv_folds[[fold]]$val_idx
-  train_idx <- cv_folds[[fold]]$train_idx
-  
-  dtrain <- xgb.DMatrix(data = geno_ref_std_clean[train_idx, ], 
-                        label = y_ref[train_idx])
-  dval <- xgb.DMatrix(data = geno_ref_std_clean[val_idx, ])
-  
-  xgb_temp <- xgb.train(
-    params = list(
-      objective = "reg:squarederror",
-      eta = 0.1, #xgb_grid$eta[best_xgb],
-      max_depth = 4, #xgb_grid$max_depth[best_xgb],
-      subsample = 1, #xgb_grid$subsample[best_xgb],
-      colsample_bytree = 0.6, #xgb_grid$colsample_bytree[best_xgb],
-      lambda = 1 #xgb_grid$lambda[best_xgb]
-    ),
-    data = dtrain,
-    nrounds = 200,
-    verbose = 0
-  )
-  pred <- predict(xgb_temp, dval)
-  cv_performance <- rbind(cv_performance, 
-                          data.frame(Model = "XGBoost", 
-                                   Fold = fold, 
-                                   Correlation = cor(pred, y_ref[val_idx])))
-}
-
-# ============================================
-# 6.2. Boxplot of CV Performance
-# ============================================
-
-p_boxplot <- ggplot(cv_performance, aes(x = Model, y = Correlation, fill = Model)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.2, alpha = 0.5) +
-  theme_minimal() +
-  labs(title = "Cross-Validation Performance Across ML Models",
-       y = "Correlation (5-fold CV)",
-       x = "Model") +
-  theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1))
-
-ggsave(file.path(output_dir, "cv_performance_boxplot.png"), 
-       plot = p_boxplot,
-       width = 10, height = 6, dpi = 300, bg = "white")
-
-cat("Saved: cv_performance_boxplot.png\n")
-
-write.csv(cv_performance, 
-          file.path(output_dir, "cv_performance_5fold.csv"), 
-          row.names = FALSE)
-
-cat("Saved: cv_performance_5fold.csv\n\n")
-
-}
-
-# ============================================
 # 6.3. Scatter Plots: Predicted vs True TBV
 # ============================================
 
@@ -865,7 +769,7 @@ ggsave(
 cat("Saved: performance_comparison_barplots.png\n")
 
 # ============================================
-# 6.5. Accuracy Decline Visualisation
+# 6.5. Accuracy Decline Visualization
 # ============================================
 
 p_decline <- ggplot(comparison, aes(x = reorder(Model, -Percent_Decline), 
@@ -926,7 +830,7 @@ predictions_gen16 <- data.frame(
   Random_Forest = pred_rf,
   XGBoost = pred_xgb,
   SVR = pred_svr,
-  Generation = paste0("Gen_", test_gens[1])
+  Generation = paste0("Gen_16")
 )
 
 # Gen 12 predictions
@@ -940,7 +844,7 @@ predictions_gen17 <- data.frame(
   Random_Forest = pred_rf_gen17,
   XGBoost = pred_xgb_gen17,
   SVR = pred_svr_gen17,
-  Generation = paste0("Gen_", test_gens[2])
+  Generation = paste0("Gen_17")
 )
 
 # Gen 13 predictions
@@ -954,7 +858,7 @@ predictions_gen18 <- data.frame(
   Random_Forest = pred_rf_gen18,
   XGBoost = pred_xgb_gen18,
   SVR = pred_svr_gen18,
-  Generation = paste0("Gen_", test_gens[3])
+  Generation = paste0("Gen_18")
 )
 
 # Save 
@@ -970,13 +874,13 @@ write.csv(predictions_gen18,
           file.path(output_dir, "predictions_gen18.csv"), 
           row.names = FALSE)
 
-cat("\n=== PREDICTION RESULTS", paste0("Gen ", test_gens[1]), "(First 10) ===\n")
+cat("\n=== PREDICTION RESULTS Gen 16")
 print(head(predictions_gen16, 10))
 
-cat("\n=== PREDICTION RESULTS", paste0("Gen ", test_gens[2]), "(First 10) ===\n")
+cat("\n=== PREDICTION RESULTS Gen 17")
 print(head(predictions_gen17, 10))
 
-cat("\n=== PREDICTION RESULTS", paste0("Gen ", test_gens[3]), "(First 10) ===\n")
+cat("\n=== PREDICTION RESULTS Gen 18")
 print(head(predictions_gen18, 10))
 
 cat("Saved: predictions_gen16.csv\n")
@@ -1133,8 +1037,10 @@ report_output <- capture.output({
   cat(strrep("=", 60), "\n")
 })
 
-# Write
+# Write ke file
 writeLines(report_output, file.path(output_dir, "summary_report.txt"))
+
+# Progress message (muncul di HPC log)
 cat("Saved: summary_report.txt")
 
 # ============================================
